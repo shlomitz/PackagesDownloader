@@ -7,8 +7,13 @@ using System.Xml.Linq;
 
 namespace PackagesDownloader.Downloaders
 {
+    // implementation of NugetDownloader
     class NugetDownloader : IPackageDownloader
     {
+        // download Nuget repository
+        // repurl - url of repository api
+        // top - how many items to download (0 - all)
+        // parentFolder - destination
         public void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository\")
         {
             parentFolder += @"nuget\";
@@ -43,6 +48,7 @@ namespace PackagesDownloader.Downloaders
                     string version = properties.Where(el => el.Name.LocalName == "Version").First().Value;
                     string filename = $"{parentFolder}{id}.{version}.nupkg";
 
+                    // for performance - don't override exist files
                     if (!File.Exists(filename))
                     {
                         string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
@@ -50,6 +56,7 @@ namespace PackagesDownloader.Downloaders
                     }
                 }
 
+                // if more than 1 page then get the next page url and download it too
                 if (top == 0 || top > 100)
                 {
                     var nextPage = (from el in xdoc.Root.Descendants()
@@ -66,6 +73,8 @@ namespace PackagesDownloader.Downloaders
             { }
         }
 
+        // generate filtered request
+        // get top X order by Download count
         private string CreateFilteredRequest(string repoUrl, int top)
         {
             string req = $"{repoUrl}?$filter=IsLatestVersion eq true&$orderby=DownloadCount desc";
@@ -75,6 +84,7 @@ namespace PackagesDownloader.Downloaders
             return req;
         }
 
+        // todo: should download files hash
         public void DownloadHashTo(string repoUrl, int top, string parentFolder)
         {
             throw new NotImplementedException();
