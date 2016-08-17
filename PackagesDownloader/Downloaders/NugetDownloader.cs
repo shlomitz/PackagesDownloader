@@ -68,7 +68,6 @@ namespace PackagesDownloader.Downloaders
 
         private string CreateFilteredRequest(string repoUrl, int top)
         {
-            //return $"{feedUrlBase}?$filter=IsLatestVersion eq true&$orderby=DownloadCount desc&$top={top}";
             string req = $"{repoUrl}?$filter=IsLatestVersion eq true&$orderby=DownloadCount desc";
             if (top > 0)
                 req += $"&$top={top}";
