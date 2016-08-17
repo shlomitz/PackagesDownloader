@@ -33,10 +33,6 @@ namespace PackagesDownloader.Downloaders
 
                 foreach (var enrty in entries)
                 {
-                    /*var properties = (from el in enrty.Descendants()
-                                       where el.Name.LocalName == "properties"
-                                       select el).First();
-                    */
                     var properties = (from el in enrty.Descendants()
                                       where el.Name.LocalName == "content" ||
                                             el.Name.LocalName == "Id" ||
