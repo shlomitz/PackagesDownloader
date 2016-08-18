@@ -4,6 +4,7 @@ using PackagesDownloader.Data;
 using PackagesDownloader.Downloaders;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace PackagesDownloader
@@ -18,8 +19,10 @@ namespace PackagesDownloader
             InitializeComponent();
         }
 
-        private void btnDownload_Click(object sender, EventArgs e)
+        private async void btnDownload_Click(object sender, EventArgs e)
         {
+            btnDownload.Enabled = false;
+
             int top = 0;
 
             switch(cmbxDownloadType.SelectedIndex)
@@ -34,9 +37,14 @@ namespace PackagesDownloader
                     break;
             }
 
+            lblCurrentNo.Text = "0";
+
             IPackageDownloader downloader = new NugetDownloader();
-            downloader.SetProgressBarItem(lblCurrentNo);
-            downloader.DownloadFilesTo("https://www.nuget.org/api/v2/Packages()", top);
+            downloader.SetProgressBarFunc(new Progress<string>(s => lblCurrentNo.Text = s));
+            await Task.Run(() => downloader.DownloadFilesTo(txtSourceUrl.Text, top, txtDestinationFolder.Text));
+
+            btnDownload.Enabled = true;
+            _configuration.LastDownloadDate = DateTime.Now;            
         }
 
         private void cmbxDownloadType_SelectedIndexChanged(object sender, EventArgs e)
@@ -77,6 +85,12 @@ namespace PackagesDownloader
         private void frmPckgsDownloader_FormClosing(object sender, FormClosingEventArgs e)
         {
             SaveConfigurationDataToFile();
+        }
+
+        private void btnFolderDlg_Click(object sender, EventArgs e)
+        {
+            if(fbDialog.ShowDialog() == DialogResult.OK)
+                txtDestinationFolder.Text = fbDialog.SelectedPath;
         }
     }
 }

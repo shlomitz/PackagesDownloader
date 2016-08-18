@@ -9,7 +9,7 @@ namespace Downloaders.PackagesDownloader
 {
     interface IPackageDownloader
     {
-        void SetProgressBarItem(Label lblObj);
+        void SetProgressBarFunc(IProgress<string> progress);
         void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository\");
         void DownloadHashTo(string repoUrl, int top, string parentFolder = @"c:\repository\");
     }

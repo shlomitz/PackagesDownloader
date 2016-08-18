@@ -12,21 +12,21 @@ namespace PackagesDownloader.Downloaders
     class NugetDownloader : IPackageDownloader
     {
         int _currentCount = 0;
-        Label _progressBarItem;
+        IProgress<string> _progress = null;
 
-        public void SetProgressBarItem(Label lblObj)
+        public void SetProgressBarFunc(IProgress<string> progress)
         {
-            _progressBarItem = lblObj;
+            _progress = progress;
         }
 
         // download Nuget repository
         // repurl - url of repository api
         // top - how many items to download (0 - all)
         // parentFolder - destination
-        public void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository\")
+        public void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository")
         {
             _currentCount = 0;
-            parentFolder += @"nuget\";
+            parentFolder += @"\nuget\";
             if (!Directory.Exists(parentFolder))
                 Directory.CreateDirectory(parentFolder);
 
@@ -66,7 +66,7 @@ namespace PackagesDownloader.Downloaders
                     }
 
                     _currentCount++;
-                    _progressBarItem.Text = _currentCount.ToString();
+                    _progress.Report(_currentCount.ToString());
                 }
 
                 // if more than 1 page then get the next page url and download it too
