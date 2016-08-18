@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Windows.Forms;
 using System.Xml.Linq;
 
 namespace PackagesDownloader.Downloaders
@@ -10,12 +11,21 @@ namespace PackagesDownloader.Downloaders
     // implementation of NugetDownloader
     class NugetDownloader : IPackageDownloader
     {
+        int _currentCount = 0;
+        Label _progressBarItem;
+
+        public void SetProgressBarItem(Label lblObj)
+        {
+            _progressBarItem = lblObj;
+        }
+
         // download Nuget repository
         // repurl - url of repository api
         // top - how many items to download (0 - all)
         // parentFolder - destination
         public void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository\")
         {
+            _currentCount = 0;
             parentFolder += @"nuget\";
             if (!Directory.Exists(parentFolder))
                 Directory.CreateDirectory(parentFolder);
@@ -54,6 +64,9 @@ namespace PackagesDownloader.Downloaders
                         string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
                         webReq.DownloadFile(source, filename);
                     }
+
+                    _currentCount++;
+                    _progressBarItem.Text = _currentCount.ToString();
                 }
 
                 // if more than 1 page then get the next page url and download it too
@@ -70,7 +83,9 @@ namespace PackagesDownloader.Downloaders
                 }
             }
             catch (Exception ex)
-            { }
+            {
+                MessageBox.Show("Error !!!");
+            }
         }
 
         // generate filtered request
