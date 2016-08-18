@@ -9,7 +9,7 @@ using System.Xml.Linq;
 namespace PackagesDownloader.Downloaders
 {
     // implementation of NugetDownloader
-    class NugetDownloader : IPackageDownloader
+    class NugetDownloader : IPackageDownloader, IDisposable
     {
         int _currentCount = 0;
         IProgress<string> _progress = null;
@@ -36,55 +36,61 @@ namespace PackagesDownloader.Downloaders
 
         private void DownloadFiles(string repoUrl, int top, string parentFolder)
         {
-            XDocument xdoc = new XDocument();
-            WebClient webReq = new WebClient();
-
+            XDocument xdoc = null;
+            
             try
             {
-                xdoc = XDocument.Parse(webReq.DownloadString(repoUrl));              
-                var entries = from el in xdoc.Root.Descendants()
-                              where el.Name.LocalName == "entry"
-                              select el;
-
-                foreach (var enrty in entries)
+                using (WebClient webReq = new WebClient())
                 {
-                    var properties = (from el in enrty.Descendants()
-                                      where el.Name.LocalName == "content" ||
-                                            el.Name.LocalName == "Id" ||
-                                            el.Name.LocalName == "Version"
-                                      select el).ToList();
+                    xdoc = XDocument.Parse(webReq.DownloadString(repoUrl));
+                    var entries = from el in xdoc.Root.Descendants()
+                                  where el.Name.LocalName == "entry"
+                                  select el;
 
-                    string id = properties.Where(el => el.Name.LocalName == "Id").First().Value;
-                    string version = properties.Where(el => el.Name.LocalName == "Version").First().Value;
-                    string filename = $"{parentFolder}{id}.{version}.nupkg";
-
-                    // for performance - don't override exist files
-                    if (!File.Exists(filename))
+                    foreach (var enrty in entries)
                     {
-                        string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
-                        webReq.DownloadFile(source, filename);
+                        var properties = (from el in enrty.Descendants()
+                                          where el.Name.LocalName == "content" ||
+                                                el.Name.LocalName == "Id" ||
+                                                el.Name.LocalName == "Version"
+                                          select el).ToList();
+
+                        string id = properties.Where(el => el.Name.LocalName == "Id").First().Value;
+                        string version = properties.Where(el => el.Name.LocalName == "Version").First().Value;
+                        string filename = $"{parentFolder}{id}.{version}.nupkg";
+
+                        // for performance - don't override exist files
+                        if (!File.Exists(filename))
+                        {
+                            string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
+                            webReq.DownloadFile(source, filename);
+                        }
+
+                        _currentCount++;
+                        _progress.Report(_currentCount.ToString());
                     }
 
-                    _currentCount++;
-                    _progress.Report(_currentCount.ToString());
-                }
+                    // if more than 1 page then get the next page url and download it too
+                    if (top == 0 || top > 100)
+                    {
+                        var nextPage = (from el in xdoc.Root.Descendants()
+                                        where el.Name.LocalName == "link" &&
+                                              el.Attribute("rel") != null &&
+                                              el.Attribute("rel").Value == "next"
+                                        select el).FirstOrDefault();
 
-                // if more than 1 page then get the next page url and download it too
-                if (top == 0 || top > 100)
-                {
-                    var nextPage = (from el in xdoc.Root.Descendants()
-                                       where el.Name.LocalName == "link" &&
-                                             el.Attribute("rel") != null &&
-                                             el.Attribute("rel").Value == "next"
-                                       select el).FirstOrDefault();
-                     
-                    if(nextPage != null)
-                        DownloadFiles(nextPage.Attribute("href").Value, top, parentFolder);
+                        if (nextPage != null)
+                            DownloadFiles(nextPage.Attribute("href").Value, top, parentFolder);
+                    }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 MessageBox.Show("Error !!!");
+            }
+            finally
+            {
+                xdoc = null;
             }
         }
 
@@ -104,5 +110,42 @@ namespace PackagesDownloader.Downloaders
         {
             throw new NotImplementedException();
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: dispose managed state (managed objects).
+                    _currentCount = 0;
+                    _progress = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                disposedValue = true;
+            }
+        }
+
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~NugetDownloader() {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }
