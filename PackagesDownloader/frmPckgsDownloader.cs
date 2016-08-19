@@ -25,6 +25,12 @@ namespace PackagesDownloader
         {
             #region frm behavior
 
+            if (cmbxDownloadType.SelectedIndex == 2)
+            {
+                MessageBox.Show("Option not supported yet !!!", "Error Message", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             btnDownload.Enabled = false;
             lblCurrentNo.Text = "0";
 
@@ -59,7 +65,7 @@ namespace PackagesDownloader
         #region frm behavior
 
         private void cmbxDownloadType_SelectedIndexChanged(object sender, EventArgs e)
-        {
+        {            
             dpDownloadFDate.Enabled = false;
             if (cmbxDownloadType.SelectedIndex == 2)
                 dpDownloadFDate.Enabled = true;

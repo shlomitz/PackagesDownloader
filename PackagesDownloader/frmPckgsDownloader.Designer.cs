@@ -65,7 +65,7 @@
             // 
             this.lblCurrentNo.AutoSize = true;
             this.lblCurrentNo.Font = new System.Drawing.Font("Microsoft Sans Serif", 13.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblCurrentNo.Location = new System.Drawing.Point(161, 488);
+            this.lblCurrentNo.Location = new System.Drawing.Point(157, 488);
             this.lblCurrentNo.Name = "lblCurrentNo";
             this.lblCurrentNo.Size = new System.Drawing.Size(83, 29);
             this.lblCurrentNo.TabIndex = 1;
@@ -85,7 +85,7 @@
             // 
             this.lblTotalNo.AutoSize = true;
             this.lblTotalNo.Font = new System.Drawing.Font("Microsoft Sans Serif", 13.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblTotalNo.Location = new System.Drawing.Point(250, 488);
+            this.lblTotalNo.Location = new System.Drawing.Point(249, 488);
             this.lblTotalNo.Name = "lblTotalNo";
             this.lblTotalNo.Size = new System.Drawing.Size(83, 29);
             this.lblTotalNo.TabIndex = 3;
