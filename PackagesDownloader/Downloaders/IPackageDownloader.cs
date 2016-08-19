@@ -11,6 +11,6 @@ namespace Downloaders.PackagesDownloader
     {
         void SetProgressBarFunc(IProgress<string> progress);
         void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository\");
-        void DownloadHashTo(string repoUrl, int top, string parentFolder = @"c:\repository\");
+        void GenerateHashLog(string repoUrl, int top, string parentFolder = @"c:\repository\");
     }
 }

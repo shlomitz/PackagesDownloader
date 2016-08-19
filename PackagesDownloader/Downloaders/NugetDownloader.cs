@@ -13,32 +13,60 @@ namespace PackagesDownloader.Downloaders
     {
         int _currentCount = 0;
         IProgress<string> _progress = null;
+        string _downloadedPackagesLog = String.Empty;
 
-        public void SetProgressBarFunc(IProgress<string> progress)
-        {
-            _progress = progress;
-        }
+        #region IPackageDownloader Api
 
         // download Nuget repository
         // repurl - url of repository api
         // top - how many items to download (0 - all)
         // parentFolder - destination
         public void DownloadFilesTo(string repoUrl, int top, string parentFolder = @"c:\repository")
+        {            
+            DownloadFilesTo(repoUrl, top, parentFolder, false);
+        }
+
+        public void GenerateHashLog(string repoUrl, int top, string parentFolder = @"c:\repository")
+        {            
+            DownloadFilesTo(repoUrl, top, parentFolder, true);
+        }
+
+        public void SetProgressBarFunc(IProgress<string> progress)
+        {
+            _progress = progress;
+        }
+
+        #endregion
+
+        #region private methods
+
+        private void DownloadFilesTo(string repoUrl, int top, string parentFolder, bool isHash)
+        {
+            parentFolder = DownloadPrerequisites(parentFolder, isHash);
+            LogDownloadFile($@"{{""files"":[");
+
+            string filteredRepoUrl = CreateFilteredRequest(repoUrl, top);
+            DownloadFiles(filteredRepoUrl, top, parentFolder, isHash);
+
+            LogDownloadFile($@"],""general_data"":{{""url"":""{repoUrl}"", ""download_time"":""{DateTime.Now.ToShortDateString()}""}}}}");
+        }
+
+        private string DownloadPrerequisites(string parentFolder, bool isHash)
         {
             _currentCount = 0;
             parentFolder += @"\nuget\";
             if (!Directory.Exists(parentFolder))
                 Directory.CreateDirectory(parentFolder);
 
-            File.AppendAllText("c:\\temp\\xxx.txt", $@"{{""files"":[");
+            if(isHash)
+                _downloadedPackagesLog = $"{parentFolder}\\DownloadedPackagesHashLog_{DateTime.Now.Millisecond}.json";
+            else
+                _downloadedPackagesLog = $"{parentFolder}\\DownloadedPackagesLog_{DateTime.Now.Millisecond}.json";
 
-            string filteredRepoUrl = CreateFilteredRequest(repoUrl, top);
-            DownloadFiles(filteredRepoUrl, top, parentFolder);
-
-            File.AppendAllText("c:\\temp\\xxx.txt", $@"],""general_data"":{{""url"":""{repoUrl}"", ""download_time"":""{DateTime.Now.ToShortDateString()}""}}}}");
+            return parentFolder;
         }
 
-        private void DownloadFiles(string repoUrl, int top, string parentFolder)
+        private void DownloadFiles(string repoUrl, int top, string parentFolder, bool isHash)
         {
             XDocument xdoc = null;
             
@@ -57,19 +85,31 @@ namespace PackagesDownloader.Downloaders
                         var properties = (from el in enrty.Descendants()
                                           where el.Name.LocalName == "content" ||
                                                 el.Name.LocalName == "Id" ||
-                                                el.Name.LocalName == "Version"
+                                                el.Name.LocalName == "Version" ||
+                                                el.Name.LocalName == "PackageHash" ||
+                                                el.Name.LocalName == "PackageHashAlgorithm"
                                           select el).ToList();
 
                         string id = properties.Where(el => el.Name.LocalName == "Id").First().Value;
                         string version = properties.Where(el => el.Name.LocalName == "Version").First().Value;
-                        string filename = $"{parentFolder}{id}.{version}.nupkg";
 
-                        // for performance - don't override exist files
-                        if (!File.Exists(filename))
+                        if (!isHash)
                         {
-                            string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
-                            webReq.DownloadFile(source, filename);
-                            File.AppendAllText("c:\\temp\\xxx.txt", $@"{delimiter}{{""name"": ""{id}.nupkg"", ""extra_data"":{{}}}}");
+                            string filename = $"{parentFolder}{id}.{version}.nupkg";
+
+                            // for performance - don't override exist files
+                            if (!File.Exists(filename))
+                            {
+                                string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
+                                webReq.DownloadFile(source, filename);
+                                LogDownloadFile($@"{delimiter}{{""name"": ""{id}.nupkg"", ""extra_data"":{{}}}}");
+                            }
+                        }
+                        else
+                        {
+                            string PackageHash = properties.Where(el => el.Name.LocalName == "PackageHash").First().Value;
+                            string PackageHashAlgorithm = properties.Where(el => el.Name.LocalName == "PackageHashAlgorithm").First().Value;
+                            LogDownloadFile($@"{delimiter}{{""name"": ""{id}.nupkg"", ""extra_data"":{{""hash"":""{PackageHash}"",""hash_algorithm"":""{PackageHashAlgorithm}"", ""id"":""{id}"",""version"":""{version}""}}}}");
                         }
 
                         if (_currentCount == 0)
@@ -89,7 +129,7 @@ namespace PackagesDownloader.Downloaders
                                         select el).FirstOrDefault();
 
                         if (nextPage != null)
-                            DownloadFiles(nextPage.Attribute("href").Value, top, parentFolder);
+                            DownloadFiles(nextPage.Attribute("href").Value, top, parentFolder, isHash);
                     }
                 }
             }
@@ -114,13 +154,15 @@ namespace PackagesDownloader.Downloaders
             return req;
         }
 
-        // todo: should download files hash
-        public void DownloadHashTo(string repoUrl, int top, string parentFolder)
+        #endregion
+
+        private void LogDownloadFile(string line)
         {
-            throw new NotImplementedException();
+            File.AppendAllText(_downloadedPackagesLog, line);
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -155,6 +197,7 @@ namespace PackagesDownloader.Downloaders
             // TODO: uncomment the following line if the finalizer is overridden above.
             // GC.SuppressFinalize(this);
         }
+
         #endregion
     }
 }
