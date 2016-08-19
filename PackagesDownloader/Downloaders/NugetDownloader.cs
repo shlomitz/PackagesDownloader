@@ -30,8 +30,12 @@ namespace PackagesDownloader.Downloaders
             if (!Directory.Exists(parentFolder))
                 Directory.CreateDirectory(parentFolder);
 
+            File.AppendAllText("c:\\temp\\xxx.txt", $@"{{""files"":[");
+
             string filteredRepoUrl = CreateFilteredRequest(repoUrl, top);
             DownloadFiles(filteredRepoUrl, top, parentFolder);
+
+            File.AppendAllText("c:\\temp\\xxx.txt", $@"],""general_data"":{{""url"":""{repoUrl}"", ""download_time"":""{DateTime.Now.ToShortDateString()}""}}}}");
         }
 
         private void DownloadFiles(string repoUrl, int top, string parentFolder)
@@ -42,6 +46,7 @@ namespace PackagesDownloader.Downloaders
             {
                 using (WebClient webReq = new WebClient())
                 {
+                    string delimiter = String.Empty;
                     xdoc = XDocument.Parse(webReq.DownloadString(repoUrl));
                     var entries = from el in xdoc.Root.Descendants()
                                   where el.Name.LocalName == "entry"
@@ -64,7 +69,11 @@ namespace PackagesDownloader.Downloaders
                         {
                             string source = properties.Where(el => el.Name.LocalName == "content").First().Attribute("src").Value;
                             webReq.DownloadFile(source, filename);
+                            File.AppendAllText("c:\\temp\\xxx.txt", $@"{delimiter}{{""name"": ""{id}.nupkg"", ""extra_data"":{{}}}}");
                         }
+
+                        if (_currentCount == 0)
+                            delimiter = ",";
 
                         _currentCount++;
                         _progress.Report(_currentCount.ToString());
